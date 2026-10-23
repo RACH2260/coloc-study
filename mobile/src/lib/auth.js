@@ -8,6 +8,12 @@ const COLUMNS = 'id, role, goal, full_name, phone, avatar_url, bio';
 
 const AuthContext = createContext(null);
 
+async function readProfile(uid) {
+  let res = await supabase.from('profiles').select(COLUMNS + ', is_admin').eq('id', uid).maybeSingle();
+  if (res.error) res = await supabase.from('profiles').select(COLUMNS).eq('id', uid).maybeSingle();
+  return res.data || null;
+}
+
 // Dernière erreur rencontrée en créant le profil (pour l'afficher à l'écran d'inscription)
 export let lastProfileError = null;
 
@@ -24,13 +30,14 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recovering, setRecovering] = useState(false);
 
   const loadProfile = useCallback(async user => {
     if (!user) {
       setProfile(null);
       return null;
     }
-    let { data } = await supabase.from('profiles').select(COLUMNS).eq('id', user.id).maybeSingle();
+    let data = await readProfile(user.id);
 
     if (!data) {
       const raw = await AsyncStorage.getItem(PENDING_KEY);
@@ -45,8 +52,7 @@ export function AuthProvider({ children }) {
           phone: p.phone,
         });
         lastProfileError = ins.error ? ins.error.message : null;
-        const again = await supabase.from('profiles').select(COLUMNS).eq('id', user.id).maybeSingle();
-        data = again.data;
+        data = await readProfile(user.id);
         if (data) await AsyncStorage.removeItem(PENDING_KEY);
       }
     }
@@ -91,17 +97,22 @@ export function AuthProvider({ children }) {
     setProfile(null);
   }, []);
 
+  const beginRecovery = useCallback(() => setRecovering(true), []);
+  const endRecovery = useCallback(() => setRecovering(false), []);
+
   const value = useMemo(
     () => ({
       session,
       user: session?.user ?? null,
       profile,
       loading,
-      signedIn: !!session && !!profile,
+      signedIn: !!session && !!profile && !recovering,
       refreshProfile,
       signOut,
+      beginRecovery,
+      endRecovery,
     }),
-    [session, profile, loading, refreshProfile, signOut]
+    [session, profile, loading, recovering, refreshProfile, signOut, beginRecovery, endRecovery]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

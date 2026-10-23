@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, Share, View, useWindowDimensions } from 'react-native';
+import { FlatList, Linking, Pressable, ScrollView, Share, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Badge, Button, EmptyState, Loader, StatusPill, Txt } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
+import { APP_DOWNLOAD_URL } from '../../lib/config';
 import { useFavorites } from '../../lib/favorites';
 import { LISTING_COLUMNS } from '../../lib/listings';
 import { formatFcfa, formatNumber, sortedPhotos, TYPE_LABEL } from '../../lib/format';
@@ -37,6 +38,7 @@ export default function ListingDetail() {
   const [paid, setPaid] = useState(false);
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
+  const [note, setNote] = useState(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('listings').select(LISTING_COLUMNS).eq('id', id).maybeSingle();
@@ -47,6 +49,11 @@ export default function ListingDetail() {
       .eq('listing_id', id)
       .eq('status', 'paye')
       .maybeSingle();
+    // motif de refus : lecture à part, pour que l'écran marche même avant la migration v2
+    if (data && data.owner_id === user.id) {
+      const { data: n } = await supabase.from('listings').select('moderation_note').eq('id', id).maybeSingle();
+      setNote(n?.moderation_note || null);
+    }
     setListing(data);
     setPaid(!!pay);
     setLoading(false);
@@ -79,10 +86,24 @@ export default function ListingDetail() {
     listing.move_fee_fcfa != null ? `Frais de ménage : ${formatFcfa(listing.move_fee_fcfa)}` : null,
   ].filter(Boolean);
 
+  function shareText() {
+    return (
+      `${listing.title}\n${formatFcfa(listing.rent_fcfa)} / mois${place ? ' · ' + place : ''}\n\nTrouvé sur Coloc'Study` +
+      (APP_DOWNLOAD_URL ? `\nTélécharger l'application : ${APP_DOWNLOAD_URL}` : '')
+    );
+  }
+
   function share() {
-    Share.share({
-      message: `${listing.title} : ${formatFcfa(listing.rent_fcfa)} / mois à ${place}. Trouvé sur Coloc'Study.`,
-    });
+    Share.share({ message: shareText() });
+  }
+
+  // Ouvre WhatsApp directement avec le message ; sinon, menu de partage classique
+  async function shareWhatsApp() {
+    try {
+      await Linking.openURL('whatsapp://send?text=' + encodeURIComponent(shareText()));
+    } catch {
+      share();
+    }
   }
 
   function goTo(i) {
@@ -119,7 +140,9 @@ export default function ListingDetail() {
             <RoundButton icon="chevron-back" label="Retour" onPress={() => router.back()} />
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <RoundButton icon={isFav(listing.id) ? 'heart' : 'heart-outline'} color={isFav(listing.id) ? '#FF6B72' : colors.white} label="Favori" onPress={() => toggle(listing.id)} />
+              <RoundButton icon="logo-whatsapp" label="Partager sur WhatsApp" onPress={shareWhatsApp} />
               <RoundButton icon="share-social-outline" label="Partager" onPress={share} />
+              {!mine ? <RoundButton icon="flag-outline" label="Signaler" onPress={() => router.push({ pathname: '/report', params: { type: 'annonce', id: listing.id } })} /> : null}
             </View>
           </View>
 
@@ -175,6 +198,9 @@ export default function ListingDetail() {
           ) : null}
 
           {mine ? <View style={{ marginTop: 12 }}><StatusPill status={listing.status} /></View> : null}
+          {mine && listing.status === 'refuse' && note ? (
+            <Txt size={13} color={colors.danger} weight="semi" style={{ marginTop: 8 }}>Motif du refus : {note}</Txt>
+          ) : null}
 
           {listing.description ? (
             <>

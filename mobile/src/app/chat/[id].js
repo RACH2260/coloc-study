@@ -13,6 +13,7 @@ export default function Chat() {
   const router = useRouter();
   const { user } = useAuth();
   const [title, setTitle] = useState('Discussion');
+  const [otherId, setOtherId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -30,8 +31,9 @@ export default function Chat() {
     (async () => {
       const { data: conv } = await supabase.from('conversations').select('user_a, user_b').eq('id', id).maybeSingle();
       if (conv) {
-        const otherId = conv.user_a === user.id ? conv.user_b : conv.user_a;
-        const { data: p } = await supabase.from('public_profiles').select('full_name').eq('id', otherId).maybeSingle();
+        const other = conv.user_a === user.id ? conv.user_b : conv.user_a;
+        if (active) setOtherId(other);
+        const { data: p } = await supabase.from('public_profiles').select('full_name').eq('id', other).maybeSingle();
         if (active && p) setTitle(p.full_name);
       }
       const { data } = await supabase
@@ -75,7 +77,17 @@ export default function Chat() {
 
   return (
     <Screen scroll={false} contentStyle={{ paddingHorizontal: 16 }}>
-      <Header onBack={() => router.back()} title={title} />
+      <Header
+        onBack={() => router.back()}
+        title={title}
+        right={
+          otherId ? (
+            <Pressable onPress={() => router.push({ pathname: '/report', params: { type: 'profil', id: otherId } })} hitSlop={10} accessibilityLabel="Signaler">
+              <Ionicons name="flag-outline" size={22} color={colors.muted} />
+            </Pressable>
+          ) : null
+        }
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <FlatList
           data={data}

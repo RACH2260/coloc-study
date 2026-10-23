@@ -28,12 +28,12 @@ export default function Messages() {
           return;
         }
         const otherIds = [...new Set(list.map(c => (c.user_a === user.id ? c.user_b : c.user_a)))];
-        const listingIds = [...new Set(list.map(c => c.listing_id))];
+        const listingIds = [...new Set(list.map(c => c.listing_id).filter(Boolean))];
         const convIds = list.map(c => c.id);
 
         const [{ data: people }, { data: listings }, { data: msgs }] = await Promise.all([
           supabase.from('public_profiles').select('id, full_name, avatar_url').in('id', otherIds),
-          supabase.from('listings').select('id, title').in('id', listingIds),
+          listingIds.length ? supabase.from('listings').select('id, title').in('id', listingIds) : { data: [] },
           supabase.from('messages').select('conversation_id, body, created_at').in('conversation_id', convIds).order('created_at', { ascending: false }).limit(300),
         ]);
 
@@ -49,7 +49,7 @@ export default function Messages() {
             id: c.id,
             name: p?.full_name || 'Utilisateur',
             avatar: p?.avatar_url,
-            title: l?.title || 'Annonce',
+            title: c.listing_id ? l?.title || 'Annonce' : 'Profil de recherche',
             last: last?.body || 'Aucun message',
             at: last?.created_at || c.created_at,
           };
@@ -86,7 +86,7 @@ export default function Messages() {
         )}
         ListEmptyComponent={
           loading ? null : (
-            <EmptyState icon="chatbubble-outline" title="Aucune discussion" text="Après avoir débloqué un contact, vous pouvez écrire directement au propriétaire." />
+            <EmptyState icon="chatbubble-outline" title="Aucune discussion" text="Après avoir débloqué un contact ou écrit à un colocataire, vos discussions apparaissent ici." />
           )
         }
       />

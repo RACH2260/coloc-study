@@ -42,6 +42,10 @@ export default function Login() {
       <Field label="E-mail" value={email} onChangeText={setEmail} placeholder="vous@exemple.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
       <Field label="Mot de passe" value={password} onChangeText={setPassword} placeholder="Votre mot de passe" secureTextEntry autoCapitalize="none" />
 
+      <Txt weight="semi" size={13} color={colors.blue} onPress={() => router.push('/forgot-password')} style={{ marginTop: 12, alignSelf: 'flex-end', textDecorationLine: 'underline' }}>
+        Mot de passe oublié ?
+      </Txt>
+
       <ErrorText>{error}</ErrorText>
       <Button title="Se connecter" onPress={submit} loading={busy} style={{ marginTop: 20 }} />
 

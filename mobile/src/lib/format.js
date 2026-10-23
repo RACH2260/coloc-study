@@ -92,6 +92,7 @@ export function authErrorMessage(err) {
   if (m.includes('password')) return 'Le mot de passe doit contenir au moins 6 caractères.';
   if (m.includes('rate limit')) return 'Trop d\'essais. Patientez quelques minutes.';
   if (m.includes('network') || m.includes('failed to fetch')) return 'Connexion impossible. Vérifiez votre réseau.';
+  if (m.includes('rate limit') || m.includes('too many')) return 'Trop de demandes. Patientez quelques minutes avant de réessayer.';
   if (m.includes('api key') || m.includes('apikey'))
     return 'Clé Supabase refusée. Clé lue par l\'app : ' + KEY_INFO + ' | Projet : ' + SUPABASE_URL.replace('https://', '').split('.')[0];
   if (m.includes('signups not allowed') || m.includes('signup is disabled')) return 'Les inscriptions sont désactivées dans Supabase (Authentication > Providers > Email).';

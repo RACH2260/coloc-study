@@ -15,6 +15,7 @@ export default function MyListings() {
   const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState({});
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -23,6 +24,9 @@ export default function MyListings() {
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false });
     setItems(data || []);
+    // motifs de refus : lecture à part, sans bloquer l'écran si la migration v2 n'est pas faite
+    const { data: n } = await supabase.from('listings').select('id, moderation_note').eq('owner_id', user.id);
+    setNotes(Object.fromEntries((n || []).map(x => [x.id, x.moderation_note])));
     setLoading(false);
   }, [user.id]);
 
@@ -83,6 +87,9 @@ export default function MyListings() {
                 <Txt weight="semi" size={14} numberOfLines={1}>{item.title}</Txt>
                 <Txt weight="semi" size={13} color={colors.blue}>{formatFcfa(item.rent_fcfa)} / mois</Txt>
                 <StatusPill status={item.status} />
+                {item.status === 'refuse' && notes[item.id] ? (
+                  <Txt size={12} color={colors.danger} numberOfLines={2}>Motif : {notes[item.id]}</Txt>
+                ) : null}
                 <View style={{ flexDirection: 'row', gap: 16, marginTop: 2 }}>
                   {item.status !== 'archive' ? (
                     <Txt weight="semi" size={12} color={colors.muted} onPress={() => archive(item)}>Archiver</Txt>

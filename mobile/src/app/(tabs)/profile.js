@@ -51,6 +51,12 @@ export default function Profile() {
         <Button title="Modifier le profil" variant="soft" onPress={() => router.push('/edit-profile')} style={{ marginTop: 18 }} />
 
         <Card style={{ marginTop: 20, paddingVertical: 4 }}>
+          {profile.is_admin ? (
+            <MenuRow icon="shield-checkmark-outline" label="Administration" onPress={() => router.push('/admin')} />
+          ) : null}
+          {profile.role === 'etudiant' ? (
+            <MenuRow icon="person-add-outline" label="Mon profil de recherche" onPress={() => router.push('/seeker-edit')} />
+          ) : null}
           <MenuRow icon="albums-outline" label="Mes annonces" onPress={() => router.push('/my-listings')} />
           <MenuRow icon="heart-outline" label="Mes favoris" onPress={() => router.push('/(tabs)/favorites')} />
           <MenuRow icon="chatbubble-outline" label="Mes messages" onPress={() => router.push('/(tabs)/messages')} />

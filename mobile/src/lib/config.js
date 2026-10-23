@@ -21,3 +21,7 @@ export const SUPPORT_WHATSAPP = '';
 
 // Limites
 export const MAX_PHOTOS = 6;
+
+// Lien de téléchargement de l'app (Play Store ou APK), ajouté aux messages de partage.
+// Laisse vide tant que l'app n'est pas publiée.
+export const APP_DOWNLOAD_URL = '';

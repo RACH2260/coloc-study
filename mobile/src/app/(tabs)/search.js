@@ -5,11 +5,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Chip, EmptyState, Field, Txt } from '../../components/ui';
 import ListingCard from '../../components/ListingCard';
+import ModeToggle from '../../components/ModeToggle';
+import SeekersView from '../../components/SeekersView';
+import { useAuth } from '../../lib/auth';
 import { searchListings } from '../../lib/listings';
 import { colors, fonts, radius } from '../../lib/theme';
 
 export default function Search() {
   const router = useRouter();
+  const { profile } = useAuth();
+  const [mode, setMode] = useState('logements');
   const [city, setCity] = useState('');
   const [type, setType] = useState('tous');
   const [neighborhood, setNeighborhood] = useState('');
@@ -48,6 +53,7 @@ export default function Search() {
 
   const header = (
     <View style={{ paddingBottom: 8 }}>
+      {profile?.role === 'etudiant' ? <ModeToggle mode={mode} onChange={setMode} /> : null}
       <Txt weight="bold" size={20} style={{ marginBottom: 12 }}>Rechercher un logement</Txt>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md }}>
@@ -90,6 +96,10 @@ export default function Search() {
       {error ? <Txt weight="semi" size={13} color={colors.danger}>{error}</Txt> : null}
     </View>
   );
+
+  if (mode === 'colocataires' && profile?.role === 'etudiant') {
+    return <SeekersView mode={mode} onModeChange={setMode} />;
+  }
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.white }}>
